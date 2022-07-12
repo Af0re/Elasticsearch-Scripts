@@ -1,0 +1,485 @@
+input 
+{
+    udp
+    {
+       port => "5000"
+    }
+    udp
+    {
+        port => "514"
+    }
+}
+                                
+filter 
+{
+        if "TRAFFIC" in [message]
+        {
+            csv 
+            {
+                separator => ","
+                    columns => ["FUTURE_USE_1", "Receive Time", "Serial Number", "Type", "Threat/Content Type", "FUTURE_USE_2", "Generated Time", "Source IP", "Destination IP", "NAT Source IP", "NAT Destination IP", "Rule Name", "Source User", "Destination User", "Application", "Virtual System", "Source Zone", "Destination Zone", "Inbound Interface", "Outbound Interface", "Log Forwarding Profile", "FUTURE_USE_3", "Session ID", "Repeat Count", "Source Port", "Destination Port", "NAT Source Port", "NAT Destination Port", "Flags", "Protocol", "Action", "Bytes", "Bytes Sent", "Bytes Received", "Packets", "Start Time", "Elapsed Time", "Category", "FUTURE_USE_4", "Sequence Number", "Action Flags", "Source Location", "Destination Location", "FUTURE_USE_5", "Packets Sent", "Packets Received", "Session End Reason", "Device Group Hierarchy Level 1", "Device Group Hierarchy Level 2", "Device Group Hierarchy Level 3", "Device Group Hierarchy Level 4", "Virtual System Name", "Device Name", "Action Source", "Source VM UUID", "Destination VM UUID", "Tunnel ID/IMSI", "Monitor Tag/IMEI", "Parent Session ID", "Parent Start Time", "Tunnel Type"]
+                    skip_empty_columns => false
+            }
+            mutate 
+            {
+                convert => [ "Bytes", "integer" ]
+                convert => [ "Bytes Received", "integer" ]
+                convert => [ "Bytes Sent", "integer" ]
+                convert => [ "Elapsed Time", "integer" ]
+                convert => [ "GeoIP.dma_code", "integer" ]
+                convert => [ "GeoIP.latitude", "float" ]
+                convert => [ "GeoIP.longitude", "float" ]
+                convert => [ "NAT Destination Port", "integer" ]
+                convert => [ "NAT Source Port", "integer" ]
+                convert => [ "Packets", "integer" ]
+                convert => [ "Packets Received", "integer" ]
+                convert => [ "Packets Sent", "integer" ]
+                convert => [ "Sequence Number", "integer" ]
+
+            }
+        }
+
+        else if "THREAT" in [message] 
+        {
+            csv 
+            {
+                separator => ","
+                columns => [ 
+                    "FUTURE_USE_1", "ReceiveTime", "SerialNumber", "Type", "Threat_ContentType", "FUTURE_USE_2",
+                    "GeneratedTime", "SourceIP", "DestinationIP", "NATSourceIP", "NATDestinationIP", "RuleName", 
+                    "SourceUser", "DestinationUser", "Application", "VirtualSystem", "SourceZone", "DestinationZone",
+                    "InboundInterface", "OutboundInterface", "LogForwardingProfile", "FUTURE_USE_3", "SessionID",
+                    "RepeatCount", "SourcePort", "DestinationPort", "NATSourcePort", "NATDestinationPort", "Flags",
+                    "Protocol", "Action", "Miscellaneous", "ThreatID", "URLCategory", "Severity", "Direction",
+                    "SequenceNumber", "ActionFlags", "SourceLocation", "DestinationLocation", "FUTURE_USE_4", 
+                    "ContentType", "PCAP_ID", "FileDigest", "Cloud", "URLIndex", "UserAgent", "FileType",
+                    "X-Forwarded-For", "Referer", "Sender", "Subject", "Recipient", "ReportID",
+                    "DeviceGroupHierarchyLevel1", "DeviceGroupHierarchyLevel2", "DeviceGroupHierarchyLevel3",
+                    "DeviceGroupHierarchyLevel4", "VirtualSystemName", "DeviceName", "FUTURE_USE_5", "SourceVMUUID",
+                    "DestinationVMUUID", "HTTPMethod", "TunnelID_IMSI", "MonitorTag_IMEI", "ParentSessionID", 
+                    "ParentStartTime", "TunnelType", "ThreatCategory", "ContentVersion", "FUTURE_USE_6"]
+                    skip_empty_columns => false
+            }
+            mutate 
+            {
+                convert => [ "GeoIP.dma_code", "integer" ]
+                convert => [ "GeoIP.latitude", "float" ]
+                convert => [ "GeoIP.longitude", "float" ]
+                convert => [ "NAT Destination Port", "integer" ]
+                convert => [ "NAT Source Port", "integer" ]
+                convert => [ "Sequence Number", "integer" ]
+     
+            }
+        }
+
+        else if "SYSTEM" in [message] 
+        {
+            grok
+            {
+                match => {"message" => "%{SYSLOG5424PRI:Syslog_priority}%{CISCOTIMESTAMP:Receive_Time} %{HOSTNAME:Device_Name}"}
+            }
+            csv 
+            {
+                separator => ","
+                skip_empty_columns => false
+            }
+            mutate 
+            {
+                # Renames the 'HOSTORIP' field to 'client_ip'
+                rename => {"column9" => "Reason"}
+                rename => {"column14" => "Severity"}
+                rename => {"column17" => "Action Flag"}
+                rename => {"column4" => "Type"}
+                rename => {"column15" => "msg"}
+                rename => {"column10" => "Region Name"}
+                rename => {"column13" => "Module"}
+                rename => {"column16" => "Sequence Number"}
+                rename => {"column3" => "Serial Number"}
+                rename => {"column2" => "Timestamp"}
+                rename => {"column6" => "Future Use 1"}
+                rename => {"column11" => "Future Use 2"}
+                rename => {"column12" => "Future Use 3"}
+                rename => {"column8" => "Future Use 4"}
+                rename => {"column5" => "Object Name"}
+                remove_field => ["column1","column7"]
+            }
+        }
+
+        else if "IP" and "IP" in [host]
+        {
+            grok
+            {
+                match => { "message" => "%{SYSLOG5424PRI}%{HOSTNAME:Hostname}: %{GREEDYDATA:Task}: %{CISCOTIMESTAMP:Received_Time}: %{GREEDYDATA:Log_status}: %{GREEDYDATA:Msg}" }
+            }
+            grok
+            {
+                match => { "message" => "%{SYSLOG5424PRI:Priority}%{TIMESTAMP_ISO8601:timestamp} %{IPV4:Src_ip} %{WORD:Log_forwarding} %{INT:sereial_no} %{INT:id} %{INT:severity}"}
+            }
+            kv 
+            {
+                field_split => "=,"
+            }
+            kv
+            { 
+                value_split => "=," 
+            }
+            mutate
+            {
+                remove_field => [ "Common.Username", "message", "profile", "Wireless_AUthentication_Users(AIR-1)", "Profile", "is_expired", "Authentication", "(user_id", ")).\nFailed to get value for attributes", ") AND (app_name !", "((guest_type", "enabled", "!", "477 172.24.33.169 Session_Logs_SIEM 137668 2 0 Common.Username", "'USER') AND (user_id", "\n CASE WHEN enabled", "filter", "attributes", "\n CASE WHEN enabled" ]
+            }
+            mutate
+            {
+                rename => { "470 172.24.33.169 Session_Logs_SIEM 137663 1 0 Common.Username" => "Common.username" }
+            }
+        }
+
+        else if "172.24.33.188" in [host]
+        {
+            grok
+            {
+                match => { "message" => "%{SYSLOG5424PRI}%{CISCOTIMESTAMP} %{HOSTNAME:Devicename} %{NOTSPACE:msg} %{INT:Seq_no} %{INT:id} %{INT:severity} %{TIMESTAMP_ISO8601:timestamp} %{NOTSPACE:TZ} %{INT:Serial_No} %{INT:segment} %{WORD:Loglevel} %{GREEDYDATA}"}
+            }
+            kv 
+            {
+                field_split => ","
+            }
+        }
+        else if "IP" in [host]
+        {
+            grok
+            {
+                match => { "message" => "%{SYSLOG5424PRI:Priority}%{CISCOTIMESTAMP:Receive_Time} %{HOSTNAME:Device_Name} %{WORD:msg} %{INT:Seq_No} %{INT:Severity} %{INT:msg_id} %{TIMESTAMP_ISO8601:Timestamp} %{ISO8601_TIMEZONE:Time_zone} %{INT:Serial_No} %{INT:Segment} %{LOGLEVEL:Loglevel} %{NOTSPACE:reason} %{CISCO_REASON:alert}"}
+            }
+            kv 
+            {
+                field_split => ","
+            }
+        }
+
+        else if "IP" in [host]
+        {
+            grok
+            {
+                match => { "message" => "%{SYSLOG5424PRI}%{CISCOTIMESTAMP:timestamp} %{WORD:host_name} %{NOTSPACE:process}: %{NOTSPACE:gateway} %{NOTSPACE:log_level}: %{NOTSPACE:pid} %{CISCO_REASON} <%{NOTSPACE:From}> %{WORD} <%{NOTSPACE:Source}> %{WORD} <%{NOTSPACE:To}> %{CISCO_REASON} %{NOTSPACE} %{NOTSPACE} %{WORD} <%{WORD:Group_Policy}> %{CISCO_REASON}: <%{NOTSPACE:Disposition}> %{CISCO_REASON} %{NOTSPACE} %{NOTSPACE} <%{CISCO_REASON:Triggered_Policy}> %{CISCO_REASON} <<%{NOTSPACE:with_destination}/>>."}
+            }
+            grok
+            {
+                match => { "message" => "%{SYSLOG5424PRI}%{CISCOTIMESTAMP:timestamp} %{WORD:host_name} %{NOTSPACE:process}: %{NOTSPACE:gateway} %{NOTSPACE:log_level}: %{NOTSPACE:pid} %{GREEDYDATA:msg}"}
+            }
+            grok
+            {
+                match => { "message" => "%{SYSLOG5424PRI}%{CISCOTIMESTAMP:timestamp} %{WORD:host_name} %{NOTSPACE:process}: Thread set thread name %{NOTSPACE:thread_ID} status: %{WORD:Status}"}
+            }
+            grok
+            {
+                match => { "message" => "%{SYSLOG5424PRI}%{CISCOTIMESTAMP:timestamp} %{WORD:host_name} %{NOTSPACE:process}: %{NOTSPACE:gateway} %{NOTSPACE:log_level}: %{NOTSPACE:pid} %{GREEDYDATA:msg}"}
+            }
+            if "|" in [message]
+            {
+                grok
+                {
+                    match => { "message" => "%{SYSLOG5424PRI}%{CISCOTIMESTAMP:timestamp} %{WORD:host_name} %{NOTSPACE:process}:"}
+                }
+                kv
+                {
+                    field_split => "|"
+                }
+               # csv
+               # {
+               #     separator => "|"
+               # }
+                mutate
+                {
+                    rename => {"column2" => "Unique_Audit_ID"}
+                    rename => {"column3" => "Event_Type"}
+                    rename => {"column4" => "Event_Arguments"}
+                    remove_field => "column1"
+                    remove_field => "column2"
+                    remove_field => "column3"
+                    remove_field => "column4"
+                }
+            }
+            else if "," in [message]
+            {
+                grok
+                {
+                    match => { "message" => "%{SYSLOG5424PRI}%{CISCOTIMESTAMP} %{WORD:Hostname} %{NOTSPACE:Process}: %{NOTSPACE:Received}: Message ID: %{NOTSPACE:Message_ID}, Audit ID %{NOTSPACE:Audit_ID}, Received on: %{IPV4:Received_IP}:%{INT:Received_port}, from host: %{IPV4:Host_IP}:%{INT:Host_port}, sender: %{NOTSPACE:Sender}, Size: %{INT:Size}, Note: %{NOTSPACE:Note}"}
+                }
+                kv
+                {
+                    field_split => ","
+                }
+            }
+            mutate
+            {
+                remove_field => "tags"
+            }
+        }
+
+        else if "IP" in [host]
+        {
+            grok
+            {
+                match => { "message" => "%{SYSLOG5424PRI}%{CISCOTIMESTAMP:Received_Time} %{HOST:Host} %{WORD:Device_Name}: %{WORD:Server_id},Local: %{IPV4:Local_ip},Local: %{INT:Local_port},Local: %{NOTSPACE:Local_id},Remote: %{IPV4:Remote_ip},Remote: ,Remote: %{INT:Remote_port},Remote: %{CISCO_REASON:Remote_id},%{WORD:Protocol},%{WORD:Traffic},Begin: 20%{DATESTAMP:Begin_timestamp},End: 20%{DATESTAMP:End_timestamp},Occurrences: %{INT:Occurrences},Application: C:%{URIPATHPARAM:Application},Rule: %{GREEDYDATA:Rule},Location: %{WORD:Location},User: %{WORD:User},Domain: %{WORD:Domain},Action: %{WORD:Action}" }
+            }
+            grok
+            {
+                match => { "message" => "%{SYSLOG5424PRI}%{CISCOTIMESTAMP:Received_time} %{WORD:Host} %{NOTSPACE:Server_name}: Site: %{NOTSPACE:site_name},Server: %{NOTSPACE:server},Domain: %{CISCO_REASON:Domain},%{CISCO_REASON:Msg},%{NOTSPACE:user_id},%{NOTSPACE:User},%{NOTSPACE:Source}" }
+            }
+            grok
+            {
+                match => { "message" => "%{SYSLOG5424PRI}%{CISCOTIMESTAMP:Received_time} %{WORD:Host} %{NOTSPACE:Server_name}: Site: %{NOTSPACE:site_name},Server: %{NOTSPACE:server},Domain: %{CISCO_REASON:Domain} %{NOTSPACE:Unknown_Domain},%{CISCO_REASON:Msg}" }
+            }
+            mutate
+            {
+                remove_field => "server"
+                remove_field => "Unknown_Domain"
+                remove_field => "tags"
+            }
+        }
+
+        else if "IP" in [host]
+        {
+            grok
+            {
+                match => { "message" => "%{SYSLOG5424PRI}%{HOSTNAME:Hostname}: %{NOTSPACE:task}: %{CISCOTIMESTAMP:timestamp}: %{NOTSPACE:log_status}: %{GREEDYDATA:msg}" }
+            }
+            mutate
+            {
+                remove_field => "tags"
+            }
+        }
+        
+        else if "IP" in [host]
+        {
+            grok
+            {
+                match => { "message" => "<%{POSINT:syslog_pri}> %{DATE_US:date}:%{TIME:time}  %{NOTSPACE:Log_type} %{NOTSPACE} : %{WORD} %{WORD} %{NOTSPACE:Msg} %{INT:Serial_num} %{INT} :  %{WORD} %{INT:SPCBId} - %{WORD} %{IPV4:Client_IP} - %{WORD} %{INT:Client_port} - %{WORD} %{IPV4:Vserver_service_IP} - %{WORD} %{INT:Vserver_service_port} - %{WORD} %{HOSTNAME:Client_version} - %{WORD} %{QS:Cipher_Suite} - %{GREEDYDATA:Session}" }
+            }
+            grok
+            {
+                match => { "message" => "<%{POSINT:syslog_pri}> %{DATE_US:date}:%{TIME:time}  %{NOTSPACE:Log_type} %{NOTSPACE} : %{WORD} %{WORD} %{NOTSPACE:Msg} %{INT:Serial_num} %{INT} : %{WORD} %{NOTSPACE:Source} - %{WORD}: %{INT:Session_ID}- %{WORD} %{WORD:User} - %{WORD} %{IPV4:Client_IP} - %{WORD} %{IPV4:NAT_IP} - %{WORD} %{IPV4:Vserver_IP}:%{INT:Vserver_Port} - %{WORD} %{IPV4:Source_IP}:%{INT:Source_port} - %{WORD} %{IPV4:Destination_IP}:%{INT:Destination_Port} - %{NOTSPACE:Start_time}" }
+            }
+            grok
+            {
+                match => { "message" => "<%{POSINT:syslog_pri}> %{DATE_US:date}:%{TIME:time}  %{NOTSPACE:Log_type} %{NOTSPACE} : %{WORD} %{WORD} %{NOTSPACE:Msg} %{INT:Serial_num} %{INT} :  %{WORD} %{IPV4:Source_ip}:%{INT:Source_port} - %{WORD} %{IPV4:Destination_ip}:%{INT:Destination_port} - %{WORD} %{WORD} %{DATE:Start_date}:%{TIME:Start_time} GMT - %{WORD} %{WORD} %{DATE:End_date}:%{TIME:End_time} GMT - %{NOTSPACE} %{INT:Total_bytes_send} - %{NOTSPACE} %{INT:Total_bytes_received}" }
+            }
+            grok
+            {
+                match => { "message" => "<%{POSINT:syslog_pri}> %{DATE_US:date}:%{TIME:time}  %{NOTSPACE:Log_type} %{NOTSPACE} : %{WORD} %{WORD} %{NOTSPACE:Msg} %{INT:Serial_num} %{INT} : %{WORD} %{NOTSPACE:Source} - %{WORD}: %{INT:Session_ID}- %{WORD} %{WORD:User} - %{WORD} %{IPV4:Client_IP} - %{WORD} %{IPV4:NAT_IP} - %{WORD} %{IPV4:Vserver_IP}:%{INT:Vserver_Port} - %{WORD} %{IPV4:Source_IP}:%{INT:Source_port} - %{WORD} %{IPV4:Destination_IP}:%{INT:Destination_Port} - %{NOTSPACE} %{INT:Total_bytes_send} - %{NOTSPACE} %{INT:Total_bytes_received} - %{NOTSPACE} %{NOTSPACE:Denied_by_policy} - %{NOTSPACE} %{GREEDYDATA:Groups}" }
+            }
+            grok
+            {
+                match => { "message" => "<%{POSINT:syslog_pri}> %{DATE_US:date}:%{TIME:time}  %{NOTSPACE:Log_type} %{NOTSPACE} : %{WORD} %{WORD} %{NOTSPACE:Msg1} %{INT:Serial_num} %{INT} :  %{GREEDYDATA:Msg}" }
+            }
+            grok
+            {
+                match => { "message" => "<%{POSINT:syslog_pri}> %{DATE_US:date}:%{TIME:time}  %{NOTSPACE:Log_type} %{NOTSPACE} : %{WORD} %{WORD} %{NOTSPACE:Msg} %{INT:Serial_num} %{INT} : %{WORD} %{NOTSPACE:Source} - %{WORD}: %{INT:Session_ID}- %{WORD} %{WORD:User} - %{WORD} %{IPV4:Client_IP} - %{WORD} %{IPV4:NAT_IP} - %{WORD} %{IPV4:Vserver_IP}:%{INT:Vserver_Port} - %{WORD} %{IPV4:Source_IP}:%{INT:Source_port} - %{WORD} %{IPV4:Destination_IP}:%{INT:Destination_Port} - %{NOTSPACE} %{QS:Start_time} - %{NOTSPACE} %{QS:End_time} - %{NOTSPACE} %{NOTSPACE:Duration}  - %{NOTSPACE} %{INT:Total_bytes_send} - %{NOTSPACE} %{INT:Total_bytes_received} - %{NOTSPACE} %{INT:Total_compressed_bytes_send} - %{NOTSPACE} %{INT:Total_compressed_bytes_received} - %{NOTSPACE} %{NOTSPACE:Compression_ratio_send} - %{NOTSPACE} %{NOTSPACE:Compression_ratio_received} - %{WORD} %{WORD:Access} - %{NOTSPACE} %{GREEDYDATA:Groups}" }
+            }
+            mutate
+            {
+                remove_field => "tags"
+            }
+        }
+        
+#       mutate 
+#       {
+#           Original message has been fully parsed, so remove it.
+#           remove_field => [ "message" ]
+#       }
+
+        # Geolocate logs that have SourceIP if that SourceIP is a non-RFC1918 address
+        if [SourceIP] and [SourceIP] !~ "(^127\.0\.0\.1)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^192\.168\.)|(^169\.254\.)" {
+            geoip 
+            {
+               source => "SourceIP"
+               target => "SourceIPGeo"
+            }
+
+            # Delete 0,0 in SourceIPGeo.location if equal to 0,0
+            if ([SourceIPGeo.location] and [SourceIPGeo.location] =~ "0,0") 
+            {
+                mutate 
+                {
+                    replace => [ "SourceIPGeo.location", "" ]
+                }
+            }
+        }
+
+        # Geolocate logs that have DestinationIP and if that DestinationIP is a non-RFC1918 address
+        if [DestinationIP] and [DestinationIP] !~ "(^127\.0\.0\.1)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^192\.168\.)|(^169\.254\.)" 
+        {
+            geoip 
+            {
+                source => "DestinationIP"
+                target => "DestinationIPGeo"
+            }
+      
+            # Delete 0,0 in DestinationIPGeo.location if equal to 0,0
+            if ([DestinationIPGeo.location] and [DestinationIPGeo.location] =~ "0,0") 
+            {
+                mutate 
+                {
+                    replace => [ "DestinationIPGeo.location", "" ]
+                }
+            }
+        }
+
+        # Takes the 5-tuple of source address, source port, destination address, destination port, and protocol and does a SHA1 hash to fingerprint the flow.  This is a useful
+        # way to be able to do top N terms queries on flows, not just on one field.
+        if [SourceIP] and [DestinationIP] 
+        {
+            fingerprint {
+                concatenate_sources => true
+                method => "SHA1"
+                key => "logstash"
+                source => [ "SourceIP", "SourcePort", "DestinationIP", "DestinationPort", "Protocol" ]
+            }
+        }
+    
+}
+
+output 
+{
+
+    stdout { codec => rubydebug }
+    #if [type] == "syslog"
+    if "TRAFFIC" in [message]
+    {
+        elasticsearch 
+        {
+            hosts => ["IP:9200"]
+            index => "traffic-%{+YYYY.MM.dd}"
+            user => "elastic"
+            password => "elastic"
+        }
+    }
+
+    else if "THREAT" in [message]
+    {
+        elasticsearch 
+        {
+            hosts => ["IP:9200"]
+            index => "threat-%{+YYYY.MM.dd}"
+            user => "elastic"
+            password => "elastic"
+        }
+    }
+    
+    else if "SYSTEM" in [message] 
+    {
+        elasticsearch
+        {
+            hosts => ["IP:9200"]
+            index => "system-%{+YYYY.MM.dd}"
+            user => "elastic"
+            password => "elastic"
+        }
+        
+    }
+    
+    else if "IP" in [host] 
+    {
+        elasticsearch
+        {
+            hosts => ["IP:9200"]
+            index => "symantec-email-%{+YYYY.MM.dd}"
+            user => "elastic"
+            password => "elastic"
+        }
+        
+    }
+    
+    else if "IP" in [host] 
+    {
+        elasticsearch
+        {
+            hosts => ["IP:9200"]
+            index => "cisco-acs-%{+YYYY.MM.dd}"
+            user => "elastic"
+            password => "elastic"
+        }
+        
+    }
+    
+    else if "IP" in [host] 
+    {
+        elasticsearch
+        {
+            hosts => ["IP:9200"]
+            index => "cisco-ise-%{+YYYY.MM.dd}"
+            user => "elastic"
+            password => "elastic"
+        }
+    }
+    
+    else if "IP" in [host]
+    {
+        elasticsearch
+        {
+            hosts => ["IP:9200"]
+            index => "aruba-cppm-%{+YYYY.MM.dd}"
+            user => "elastic"
+            password => "elastic"
+        }
+    }
+
+    else if "IP" in [host] 
+    {
+        elasticsearch
+        {
+            hosts => ["IP:9200"]
+            index => "aruba-cppm-main-%{+YYYY.MM.dd}"
+            user => "elastic"
+            password => "elastic"
+        }
+        
+    }
+    
+    else if "IP" in [host] 
+    {
+        elasticsearch
+        {
+            hosts => ["IP:9200"]
+            index => "cisco-wlc-%{+YYYY.MM.dd}"
+            user => "elastic"
+            password => "elastic"
+        }
+        
+    }
+    
+    else if "IP" in [host] 
+    {
+        elasticsearch
+        {
+            hosts => ["IP:9200"]
+            index => "citrix-ssl-vpn-%{+YYYY.MM.dd}"
+            user => "elastic"
+            password => "elastic"
+        }
+        
+    }
+    
+    else if "IP" in [host] 
+    {
+        elasticsearch
+        {
+            hosts => ["IP:9200"]
+            index => "symantec-endpoint-%{+YYYY.MM.dd}"
+            user => "elastic"
+            password => "elastic"
+        }
+        
+    }
+    
+    else
+    {
+        elasticsearch
+        {
+            hosts => ["IP:9200"]
+            index => "other-%{+YYYY.MM.dd}"
+            user => "elastic"
+            password => "elastic"
+        }   
+    }
+}
