@@ -1,0 +1,64 @@
+input {
+    udp {
+        port => 514
+        type => "syslog"
+    }
+        beats
+        {
+                port => 5044
+        }
+}
+filter {
+    mutate {
+        gsub => [
+            "message", ":", ":",
+            "message", "^<[0-9][0-9][0-9]>", ""
+        ]
+    }
+    kv {
+        field_split =>  "\"\,\" "
+        source => "message"
+        add_field => ["sourcetime", "%{date}:%{time}"]
+    }
+    date { match => ["sourcetime","yyyy-MM-dd:HH:mm:ss"] }
+    geoip {
+        source => "srcip"
+        target => "geoip"
+        add_field => [ "[geoip][coordinates]","%{[geoip][longitude]}" ]
+        add_field => [ "[geoip][coordinates]","%{[geoip][latitude]}" ]
+    }
+    mutate {
+        convert => [ "[geoip][coordinates]", "float"]
+    }
+        mutate {
+                convert => {
+                        "policyid" => "integer"
+                        "sessionId" => "integer"
+                        "appid" => "integer"
+                        "proto" => "integer"
+                        "logid" => "integer"
+                        "sentpkt" => "integer"
+                        "sentbyte" => "integer"
+                        "rcvdpkt" => "integer"
+                        "rcvdbyte" => "integer"
+                        "tunnelip" => "float"
+                        "host" => "float"
+                        "tunnelid" => "integer"
+                        "transip" => "float"
+                }
+        }
+}
+output {
+    stdout { codec => rubydebug }
+    elasticsearch {
+        hosts => ["192.168.151.15:9200"]
+        user => "elastic"
+        password =>"changeme"
+        index => "afore-%{+YYYY.MM.dd}"
+#        template => "/usr/share/logstash/bin/forti_new-template.json"
+#        template_name => "forti_new-*"
+    }
+#    file{
+#        path => "/home/elk1/sample_demp.txt"
+#    }
+}
