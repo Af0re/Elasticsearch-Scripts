@@ -1,0 +1,191 @@
+input
+{
+	stdin { }
+}
+
+filter
+{	
+	if "ICMP" in [message]
+	{
+		grok
+		{
+		match => { "message" => "^<%{POSINT}>1 %{TIMESTAMP_ISO8601}00 %{IPV4:ip} %{HOSTNAME:host_name} %{GREEDYDATA} Action=%{QS:action} UUid=%{QS:UUid} inzone=%{QS:inzone} outzone=%{QS:outzone} rule=%{QS:rule} rule_uid=%{QS:rule_uid} rule_name=%{QS:rule_name} service_id=%{QS:service_id} ICMP=%{QS:icmp} src=%{QS:src} dst=%{QS:dst} proto=%{QS:proto_id} ICMP Type=%{QS:icmp_type} ICMP Code=%{QS:icmp_code} user=%{QS:user} src_user_name=%{QS:src_user_name} src_machine_name=%{QS:src_machine_name} snid=%{QS:snid} product=%{QS:product} product_family=%{QS:product_family}" }
+		}
+mutate{
+	gsub => ["action","\"",""]
+	gsub => ["UUid","\"",""]
+	gsub => ["inzone","\"",""]
+	gsub => ["outzone","\"",""]
+	gsub => ["rule","\"",""]
+	gsub => ["rule_uid","\"",""]
+	gsub => ["rule_name","\"",""]
+	gsub => ["service_id","\"",""]
+	gsub => ["icmp","\"",""]
+	gsub => ["src","\"",""]
+	gsub => ["dst","\"",""]
+	gsub => ["proto_id","\"",""]
+	gsub => ["icmp_type","\"",""]
+	gsub => ["icmp_code","\"",""]
+	gsub => ["user","\"",""]
+	gsub => ["src_user_name","\"",""]
+	gsub => ["src_machine_name","\"",""]
+	gsub => ["snid","\"",""]
+	gsub => ["product","\"",""]
+	gsub => ["product_family","\"",""]
+}
+}
+
+	else if "FollowUp" in [message]
+	{
+		grok
+		{
+		match => { "message" => "^<%{POSINT}>1 %{TIMESTAMP_ISO8601}00 %{IPV4:ip} %{HOSTNAME:host_name} %{GREEDYDATA} Action=%{QS:action} UUid=%{QS:UUid} Protection Name=%{QS:protection} Severity=%{QS:Severity} Confidence Level=%{QS:confi_level} protection_id=%{QS:protection_id} SmartDefense Profile=%{QS:smart_def_prof} Performance Impact=%{QS:perf_impact} Protection Type=%{QS:prot_typ} rule=%{QS:rule} rule_uid=%{QS:rule_uid} rule_name=%{QS:rule_name} Attack Info=%{QS:attack_info} attack=%{QS:attack} src=%{QS:src} dst=%{QS:dst} proto=%{QS:proto_id} user=%{QS:user} src_user_name=%{QS:src_user_name} src_machine_name=%{QS:src_machine_name} snid=%{QS:snid} dst_user_name=%{QS:dst_user_name} dst_machine_name=%{QS:dst_machine_name} product=%{QS:product} service=%{QS:service_id} s_port=%{QS:s_port} FollowUp=%{QS:followup} product_family=%{QS:product_family}" }
+		}
+mutate{
+	gsub => ["action","\"",""]
+	gsub => ["UUid","\"",""]
+	gsub => ["protection","\"",""]
+	gsub => ["Severity","\"",""]
+	gsub => ["confi_level","\"",""]
+	gsub => ["protection_id","\"",""]
+	gsub => ["smart_def_prof","\"",""]
+	gsub => ["perf_impact","\"",""]
+	gsub => ["prot_typ","\"",""]
+	gsub => ["rule","\"",""]
+	gsub => ["rule_uid","\"",""]
+	gsub => ["rule_name","\"",""]
+	gsub => ["attack_info","\"",""]
+	gsub => ["attack","\"",""]
+	gsub => ["src","\"",""]
+	gsub => ["dst","\"",""]
+	gsub => ["proto_id","\"",""]
+	gsub => ["user","\"",""]
+	gsub => ["src_user_name","\"",""]
+	gsub => ["src_machine_name","\"",""]
+	gsub => ["snid","\"",""]
+	gsub => ["dst_user_name","\"",""]
+	gsub => ["dst_machine_name","\"",""]
+	gsub => ["product","\"",""]
+	gsub => ["service_id","\"",""]
+	gsub => ["s_port","\"",""]
+	gsub => ["followup","\"",""]
+	gsub => ["product_family","\"",""]
+}
+}
+	else if "bytes" in [message]
+	{
+		grok
+		{
+		match => { "message" => "^<%{POSINT}>1 %{TIMESTAMP_ISO8601}00 %{IPV4:ip} %{HOSTNAME:host_name} %{GREEDYDATA} Action=%{QS:action} UUid=%{QS:UUid} src=%{QS:src} dst=%{QS:dst} proto=%{QS:proto_id} bytes=%{QS:bytes} sent_bytes=%{QS:sent_bytes} received_bytes=%{QS:received_bytes} app_id=%{QS:app_id} browse_time=%{QS:browse_time} Suppressed logs=%{QS:suppressed_log} user=%{QS:user} src_user_name=%{QS:src_usr_name} src_machine_name=%{QS:src_machine_name} snid=%{QS:snid} product=%{QS:product} service=%{QS:service_id} s_port=%{QS:src_port} product_family=%{QS:product_family}" }
+		}
+mutate{
+	gsub => ["action","\"",""]
+	gsub => ["UUid","\"",""]
+	gsub => ["src","\"",""]
+	gsub => ["dst","\"",""]
+	gsub => ["proto_id","\"",""]
+	gsub => ["bytes","\"",""]
+	gsub => ["sent_bytes","\"",""]
+	gsub => ["received_bytes","\"",""]
+	gsub => ["app_id","\"",""]
+	gsub => ["browse_time","\"",""]
+	gsub => ["suppressed_log","\"",""]
+	gsub => ["user","\"",""]
+	gsub => ["src_usr_name","\"",""]
+	gsub => ["src_machine_name","\"",""]
+	gsub => ["snid","\"",""]
+	gsub => ["product","\"",""]
+	gsub => ["service_id","\"",""]
+	gsub => ["src_port","\"",""]
+	gsub => ["product_family","\"",""]
+}
+}
+	else if "message_info" in [message]
+	{
+		grok
+		{
+		match => { "message" => "^<%{POSINT}>1 %{TIMESTAMP_ISO8601}00 %{IPV4:ip} %{HOSTNAME:host_name} %{GREEDYDATA} Action=%{QS:action} UUid=%{QS:UUid} src=%{QS:src} dst=%{QS:dst} proto=%{QS:proto_id} message_info=%{QS:msg} dst_user_name=%{QS:dst_user_name} dst_machine_name=%{QS:dst_machine_name} product=%{QS:product} product_family=%{QS:product_family}" }
+		}	
+mutate{
+	gsub => ["action","\"",""]
+	gsub => ["UUid","\"",""]
+	gsub => ["src","\"",""]
+	gsub => ["dst","\"",""]
+	gsub => ["proto_id","\"",""]
+	gsub => ["msg","\"",""]
+	gsub => ["dst_user_name","\"",""]
+	gsub => ["dst_machine_name","\"",""]
+	gsub => ["product","\"",""]
+	gsub => ["product_family","\"",""]
+}
+}
+	else if "NAT_rulenum" in [message]
+	{
+		grok
+		{
+		match => { "message" => "^<%{POSINT}>1 %{TIMESTAMP_ISO8601}00 %{IPV4:ip} %{HOSTNAME:host_name} %{GREEDYDATA} Action=%{QS:action} UUid=%{QS:UUid} inzone=%{QS:inzone} outzone=%{QS:outzone} rule=%{QS:rule} rule_uid=%{QS:rule_uid} rule_name=%{QS:rule_name} service_id=%{QS:service_id} src=%{QS:src} dst=%{QS:dst} proto=%{QS:proto_id} xlatedst=%{QS:xlatedst} NAT_rulenum=%{QS:NAT_rulenum} NAT_addtnl_rulenum=%{QS:NAT_addtnl_rulenum} product=%{QS:product} service=%{QS:service} s_port=%{QS:s_port} product_family=%{QS:product_family}" }
+		}
+mutate{
+	gsub => ["action","\"",""]
+	gsub => ["UUid","\"",""]
+	gsub => ["inzone","\"",""]
+	gsub => ["outzone","\"",""]
+	gsub => ["rule","\"",""]
+	gsub => ["rule_uid","\"",""]
+	gsub => ["rule_name","\"",""]
+	gsub => ["service_id","\"",""]
+	gsub => ["src","\"",""]
+	gsub => ["dst","\"",""]
+	gsub => ["proto_id","\"",""]
+	gsub => ["xlatedst","\"",""]
+	gsub => ["NAT_rulenum","\"",""]
+	gsub => ["NAT_addtnl_rulenum","\"",""]
+	gsub => ["product","\"",""]
+	gsub => ["service_id","\"",""]
+	gsub => ["s_port","\"",""]
+	gsub => ["product_family","\"",""]
+}
+}
+	else if "app_rule_name" in [message]	
+	{
+		grok
+		{
+		match => { "message" => "^<%{POSINT}>1 %{TIMESTAMP_ISO8601}00 %{IPV4:ip} %{HOSTNAME:host_name} %{GREEDYDATA} Action=%{QS:action} UUid=%{QS:UUid} src=%{QS:src} dst=%{QS:dst} proto=%{QS:proto_id} appi_name=%{QS:appi_name} app_desc=%{QS:app_desc} app_id=%{QS:app_id} app_category=%{QS:app_category} matched_category=%{QS:matched_category} app_properties=%{QS:app_properties} app_risk=%{QS:app_risk} app_rule_id=%{QS:app_rule_id} app_rule_name=%{QS:app_rule_name} web_client_type=%{QS:type} resource=%{QS:URI} proxy_src_ip=%{QS:ip} user=%{QS:user} src_user_name=%{QS:src_user_name} src_machine_name=%{QS:src_machine_name} snid=%{QS:snid} product=%{QS:product} service=%{QS:service_id} s_port=%{QS:s_port} product_family=%{QS:product_family}" }
+		}
+mutate{
+	gsub => ["action","\"",""]
+	gsub => ["UUid","\"",""]
+	gsub => ["src","\"",""]
+	gsub => ["dst","\"",""]
+	gsub => ["proto_id","\"",""]
+	gsub => ["appi_name","\"",""]
+	gsub => ["app_desc","\"",""]
+	gsub => ["app_id","\"",""]
+	gsub => ["app_category","\"",""]
+	gsub => ["matched_category","\"",""]
+	gsub => ["app_properties","\"",""]
+	gsub => ["app_risk","\"",""]
+	gsub => ["app_rule_id","\"",""]
+	gsub => ["app_rule_name","\"",""]
+	gsub => ["type","\"",""]
+	gsub => ["URI","\"",""]
+	gsub => ["ip","\"",""]
+	gsub => ["user","\"",""]
+	gsub => ["src_user_name","\"",""]
+	gsub => ["src_machine_name","\"",""]
+	gsub => ["snid","\"",""]
+	gsub => ["product","\"",""]
+	gsub => ["service_id","\"",""]
+	gsub => ["s_port","\"",""]
+	gsub => ["product_family","\"",""]
+}
+}
+}
+output
+{
+	stdout{ codec => rubydebug }
+	elasticsearch{
+	hosts => "localhost:9200"
+	index => "krunal1"
+	}
+}
