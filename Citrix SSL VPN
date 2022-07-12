@@ -1,0 +1,45 @@
+input
+{
+	stdin {}	
+}
+
+filter 
+{
+	grok
+	{
+		match => { "message" => "<%{POSINT:syslog_pri}> %{DATE_US:date}:%{TIME:time}  %{NOTSPACE:Log_type} %{NOTSPACE} : %{WORD} %{WORD} %{NOTSPACE:Msg} %{INT:Serial_num} %{INT} :  %{WORD} %{INT:SPCBId} - %{WORD} %{IPV4:Client_IP} - %{WORD} %{INT:Client_port} - %{WORD} %{IPV4:Vserver_service_IP} - %{WORD} %{INT:Vserver_service_port} - %{WORD} %{HOSTNAME:Client_version} - %{WORD} %{QS:Cipher_Suite} - %{GREEDYDATA:Session}" }
+	}
+	grok
+	{
+		match => { "message" => "<%{POSINT:syslog_pri}> %{DATE_US:date}:%{TIME:time}  %{NOTSPACE:Log_type} %{NOTSPACE} : %{WORD} %{WORD} %{NOTSPACE:Msg} %{INT:Serial_num} %{INT} : %{WORD} %{NOTSPACE:Source} - %{WORD}: %{INT:Session_ID}- %{WORD} %{WORD:User} - %{WORD} %{IPV4:Client_IP} - %{WORD} %{IPV4:NAT_IP} - %{WORD} %{IPV4:Vserver_IP}:%{INT:Vserver_Port} - %{WORD} %{IPV4:Source_IP}:%{INT:Source_port} - %{WORD} %{IPV4:Destination_IP}:%{INT:Destination_Port} - %{NOTSPACE:Start_time}" }
+	}
+	grok
+	{
+		match => { "message" => "<%{POSINT:syslog_pri}> %{DATE_US:date}:%{TIME:time}  %{NOTSPACE:Log_type} %{NOTSPACE} : %{WORD} %{WORD} %{NOTSPACE:Msg} %{INT:Serial_num} %{INT} :  %{WORD} %{IPV4:Source_ip}:%{INT:Source_port} - %{WORD} %{IPV4:Destination_ip}:%{INT:Destination_port} - %{WORD} %{WORD} %{DATE:Start_date}:%{TIME:Start_time} GMT - %{WORD} %{WORD} %{DATE:End_date}:%{TIME:End_time} GMT - %{NOTSPACE} %{INT:Total_bytes_send} - %{NOTSPACE} %{INT:Total_bytes_received}" }
+	}
+	grok
+	{
+		match => { "message" => "<%{POSINT:syslog_pri}> %{DATE_US:date}:%{TIME:time}  %{NOTSPACE:Log_type} %{NOTSPACE} : %{WORD} %{WORD} %{NOTSPACE:Msg} %{INT:Serial_num} %{INT} : %{WORD} %{NOTSPACE:Source} - %{WORD}: %{INT:Session_ID}- %{WORD} %{WORD:User} - %{WORD} %{IPV4:Client_IP} - %{WORD} %{IPV4:NAT_IP} - %{WORD} %{IPV4:Vserver_IP}:%{INT:Vserver_Port} - %{WORD} %{IPV4:Source_IP}:%{INT:Source_port} - %{WORD} %{IPV4:Destination_IP}:%{INT:Destination_Port} - %{NOTSPACE} %{INT:Total_bytes_send} - %{NOTSPACE} %{INT:Total_bytes_received} - %{NOTSPACE} %{NOTSPACE:Denied_by_policy} - %{NOTSPACE} %{GREEDYDATA:Groups}" }
+	}
+	grok
+	{
+		match => { "message" => "<%{POSINT:syslog_pri}> %{DATE_US:date}:%{TIME:time}  %{NOTSPACE:Log_type} %{NOTSPACE} : %{WORD} %{WORD} %{NOTSPACE:Msg1} %{INT:Serial_num} %{INT} :  %{GREEDYDATA:Msg}" }
+	}
+	grok
+	{
+		match => { "message" => "<%{POSINT:syslog_pri}> %{DATE_US:date}:%{TIME:time}  %{NOTSPACE:Log_type} %{NOTSPACE} : %{WORD} %{WORD} %{NOTSPACE:Msg} %{INT:Serial_num} %{INT} : %{WORD} %{NOTSPACE:Source} - %{WORD}: %{INT:Session_ID}- %{WORD} %{WORD:User} - %{WORD} %{IPV4:Client_IP} - %{WORD} %{IPV4:NAT_IP} - %{WORD} %{IPV4:Vserver_IP}:%{INT:Vserver_Port} - %{WORD} %{IPV4:Source_IP}:%{INT:Source_port} - %{WORD} %{IPV4:Destination_IP}:%{INT:Destination_Port} - %{NOTSPACE} %{QS:Start_time} - %{NOTSPACE} %{QS:End_time} - %{NOTSPACE} %{NOTSPACE:Duration}  - %{NOTSPACE} %{INT:Total_bytes_send} - %{NOTSPACE} %{INT:Total_bytes_received} - %{NOTSPACE} %{INT:Total_compressed_bytes_send} - %{NOTSPACE} %{INT:Total_compressed_bytes_received} - %{NOTSPACE} %{NOTSPACE:Compression_ratio_send} - %{NOTSPACE} %{NOTSPACE:Compression_ratio_received} - %{WORD} %{WORD:Access} - %{NOTSPACE} %{GREEDYDATA:Groups}" }
+	}
+	mutate
+	{
+		remove_field => "tags"
+	}
+}
+output 
+{
+stdout { codec => rubydebug }
+	elasticsearch
+	{
+	hosts => ["localhost:9200"]
+	index => "test"
+	}
+}
