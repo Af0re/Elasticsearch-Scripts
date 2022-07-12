@@ -1,0 +1,47 @@
+{
+  "trigger": {
+    "schedule": {
+      "interval": "1s"
+    }
+  },
+  "input": {
+    "search": {
+      "request": {
+        "search_type": "query_then_fetch",
+        "indices": [
+          "forti-*"
+        ],
+        "types": [],
+        "body": {
+            "query": {
+        "query_string" : {
+            "fields" : ["dstport"],
+            "query" : "137 OR 139 OR 445"
+            }
+          }
+        }
+      }
+    }
+  },
+  "condition": {
+    "compare": {
+      "ctx.payload.hits.total": {
+        "gt": 10
+      }
+    }
+  },
+ "actions": {
+    "index_payload": {
+      "index": {
+        "index": "action-watches",
+      }
+    }
+  },
+  "transform": {
+    "script": {
+      "source": "return [ 'time' : ctx.payload.hits.hits]",
+      "lang": "painless"
+    }
+  },
+  "throttle_period_in_millis": 120000
+}
