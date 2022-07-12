@@ -1,0 +1,83 @@
+input
+{
+	udp
+	{
+		port => 5000
+		type => "rawlog"
+	}
+	udp
+	{
+		port => 5001
+		type => "syslog"
+		codec => cef
+	}
+}
+
+filter
+{
+	if [type] == "syslog"
+	{
+		mutate
+		{
+			split => ["message", "|"]
+		}
+	}
+	else if [type] == "rawlog"
+	{
+		kv
+		{
+			field_split => "&:"
+		}
+	}
+	else { }
+	date 
+	{
+		match => ["startTime", "UNIX_MS"]
+		target => "startTime_New"
+	}
+	date 
+	{
+		match => ["agentReceiptTime", "UNIX_MS"]
+		target => "agentReceiptTime_New"
+	}
+	date 
+	{
+		match => ["deviceReceiptTime", "UNIX_MS"]
+		target => "deviceReceiptTime_New"
+	}
+}
+
+output
+{
+	stdout => {codec => rubydebug}
+	if ([host] =~ "127.0.0.1")
+	{
+		elasticsearch
+		{
+			hosts => ["127.0.0.1:9200"]
+			user => "elastic"
+			password => "changeme"
+			index => "ad-rawlog-%{+YYYY.MM.dd}"
+		}
+	}
+	else if ([host] =~ "127.0.0.1")
+	{
+		elasticsearch
+		{
+			hosts => ["127.0.0.1:9200"]
+			user => "elastic"
+			password => "changeme"
+			index => "cef-syslog-%{+YYYY.MM.dd}"
+		}
+	}
+	else
+	{
+		elasticsearch
+		{
+			hosts => ["127.0.0.1:9200"]
+			user => "elastic"
+			password => "changeme"
+			index => "other-log-%{+YYYY.MM.dd}"
+		}
+	}
+}
